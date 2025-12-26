@@ -20,7 +20,11 @@ export const initDB = async (): Promise<void> => {
 };
 
 export const addPerson = async (person: Omit<Person, 'id'>): Promise<number> => {
-  const docRef = await addDoc(collection(db, COLLECTION_NAME), person);
+  // Remove undefined fields
+  const cleanPerson = Object.fromEntries(
+    Object.entries(person).filter(([_, v]) => v !== undefined)
+  );
+  const docRef = await addDoc(collection(db, COLLECTION_NAME), cleanPerson);
   return parseInt(docRef.id, 36); // Convert string ID to number for compatibility
 };
 
@@ -48,8 +52,12 @@ export const getPerson = async (id: number): Promise<Person | undefined> => {
 
 export const updatePerson = async (person: Person): Promise<Person> => {
   const { id, ...personData } = person;
+  // Remove undefined fields
+  const cleanData = Object.fromEntries(
+    Object.entries(personData).filter(([_, v]) => v !== undefined)
+  );
   const docRef = doc(db, COLLECTION_NAME, id.toString(36));
-  await updateDoc(docRef, personData);
+  await updateDoc(docRef, cleanData);
   return person;
 };
 
