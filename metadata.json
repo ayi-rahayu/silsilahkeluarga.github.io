@@ -1,0 +1,5 @@
+{
+  "name": "Aplikasi Silsilah Keluarga",
+  "description": "A web application to create, view, and manage a family tree. It features an interactive tree diagram, a list view, and an admin panel for CRUD operations, all running client-side.",
+  "requestFramePermissions": []
+}
