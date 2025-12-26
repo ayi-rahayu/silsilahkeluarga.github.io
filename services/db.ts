@@ -25,45 +25,61 @@ export const addPerson = async (person: Omit<Person, 'id'>): Promise<number> => 
     Object.entries(person).filter(([_, v]) => v !== undefined)
   );
   const docRef = await addDoc(collection(db, COLLECTION_NAME), cleanPerson);
-  return parseInt(docRef.id, 36); // Convert string ID to number for compatibility
+  // Use hash of docRef.id as number ID
+  const numericId = docRef.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return numericId;
 };
 
 export const getAllPeople = async (): Promise<Person[]> => {
   const q = query(collection(db, COLLECTION_NAME));
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({
-    ...doc.data(),
-    id: parseInt(doc.id, 36) // Convert Firestore ID to number
-  })) as Person[];
+  return querySnapshot.docs.map(doc => {
+    const numericId = doc.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return {
+      ...doc.data(),
+      id: numericId,
+      _firestoreId: doc.id // Keep original Firestore ID
+    };
+  }) as Person[];
 };
 
 export const getPerson = async (id: number): Promise<Person | undefined> => {
-  const docRef = doc(db, COLLECTION_NAME, id.toString(36));
-  const docSnap = await getDoc(docRef);
-  
-  if (docSnap.exists()) {
-    return {
-      ...docSnap.data(),
-      id: parseInt(docSnap.id, 36)
-    } as Person;
-  }
-  return undefined;
+  // Find by numeric ID
+  const allPeople = await getAllPeople();
+  return allPeople.find(p => p.id === id);
 };
 
 export const updatePerson = async (person: Person): Promise<Person> => {
-  const { id, ...personData } = person;
+  const { id, _firestoreId, ...personData } = person as any;
   // Remove undefined fields
   const cleanData = Object.fromEntries(
     Object.entries(personData).filter(([_, v]) => v !== undefined)
   );
-  const docRef = doc(db, COLLECTION_NAME, id.toString(36));
-  await updateDoc(docRef, cleanData);
+  
+  // Find Firestore ID
+  if (_firestoreId) {
+    const docRef = doc(db, COLLECTION_NAME, _firestoreId);
+    await updateDoc(docRef, cleanData);
+  } else {
+    // Fallback: find by numeric ID
+    const allPeople = await getAllPeople();
+    const foundPerson = allPeople.find(p => p.id === id) as any;
+    if (foundPerson?._firestoreId) {
+      const docRef = doc(db, COLLECTION_NAME, foundPerson._firestoreId);
+      await updateDoc(docRef, cleanData);
+    }
+  }
   return person;
 };
 
 export const deletePerson = async (id: number): Promise<void> => {
-  const docRef = doc(db, COLLECTION_NAME, id.toString(36));
-  await deleteDoc(docRef);
+  // Find Firestore ID
+  const allPeople = await getAllPeople();
+  const foundPerson = allPeople.find(p => p.id === id) as any;
+  if (foundPerson?._firestoreId) {
+    const docRef = doc(db, COLLECTION_NAME, foundPerson._firestoreId);
+    await deleteDoc(docRef);
+  }
 };
 
 export const exportData = async (): Promise<string> => {
