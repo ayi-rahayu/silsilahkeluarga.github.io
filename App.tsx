@@ -1,19 +1,29 @@
-
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import PublicView from './pages/PublicView';
+import PublicLogin from './pages/PublicLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import Login from './pages/Login';
 import MemberForm from './components/MemberForm';
 import { DataProvider } from './contexts/DataContext';
 import AdminLayout from './components/AdminLayout';
 
+const ProtectedPublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const isAuthenticated = sessionStorage.getItem('public_auth') === 'true';
+  return isAuthenticated ? <>{children}</> : <Navigate to="/" />;
+};
+
 const App: React.FC = () => {
   return (
     <DataProvider>
       <HashRouter>
         <Routes>
-          <Route path="/" element={<PublicView />} />
+          <Route path="/" element={<PublicLogin />} />
+          <Route path="/view" element={
+            <ProtectedPublicRoute>
+              <PublicView />
+            </ProtectedPublicRoute>
+          } />
           <Route path="/login" element={<Login />} />
           <Route 
             path="/admin" 

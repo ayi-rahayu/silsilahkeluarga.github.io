@@ -1,13 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { db } from '../services/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
-const ADMIN_PASSWORD = 'admin123'; // In a real app, this should not be hardcoded.
 const AUTH_KEY = 'family_tree_auth';
 
 const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -16,13 +18,25 @@ const Login: React.FC = () => {
     }
   }, [navigate]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      localStorage.setItem(AUTH_KEY, 'true');
-      navigate('/admin');
-    } else {
-      setError('Incorrect password.');
+    setLoading(true);
+    setError('');
+
+    try {
+      const configDoc = await getDoc(doc(db, 'config', 'passwords'));
+      const passwords = configDoc.data();
+
+      if (passwords?.adminPassword === password) {
+        localStorage.setItem(AUTH_KEY, 'true');
+        navigate('/admin');
+      } else {
+        setError('Password salah');
+      }
+    } catch (err) {
+      setError('Terjadi kesalahan. Silakan coba lagi.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -60,12 +74,13 @@ const Login: React.FC = () => {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-                <i className="fas fa-lock h-5 w-5 text-indigo-500 group-hover:text-indigo-400"></i>
+                <i className={`fas ${loading ? 'fa-spinner fa-spin' : 'fa-lock'} h-5 w-5 text-indigo-500 group-hover:text-indigo-400`}></i>
               </span>
-              Sign in
+              {loading ? 'Memverifikasi...' : 'Sign in'}
             </button>
           </div>
         </form>
