@@ -123,3 +123,31 @@ export const deletePerson = (id: number): Promise<void> => {
     };
   });
 };
+
+export const exportData = async (): Promise<string> => {
+  const people = await getAllPeople();
+  return JSON.stringify(people, null, 2);
+};
+
+export const importData = async (jsonData: string): Promise<void> => {
+  const people = JSON.parse(jsonData) as Person[];
+  const db = await initDB();
+  const transaction = db.transaction(STORE_NAME, 'readwrite');
+  const store = transaction.objectStore(STORE_NAME);
+  
+  // Clear existing data
+  await new Promise((resolve, reject) => {
+    const clearRequest = store.clear();
+    clearRequest.onsuccess = () => resolve(true);
+    clearRequest.onerror = () => reject('Error clearing data');
+  });
+  
+  // Add all people
+  for (const person of people) {
+    await new Promise((resolve, reject) => {
+      const addRequest = store.add(person);
+      addRequest.onsuccess = () => resolve(true);
+      addRequest.onerror = () => reject('Error importing person');
+    });
+  }
+};
