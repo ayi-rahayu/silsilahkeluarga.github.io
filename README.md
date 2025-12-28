@@ -1,7 +1,6 @@
-## Run Locally
-
+## Demo
 **Prerequisites:**  Node.js
-
+https://ayi-rahayu.github.io/silsilahkeluarga.github.io/
 
 1. Install dependencies:
    `npm install`
